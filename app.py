@@ -277,14 +277,14 @@ with gr.Blocks(title="Emotion Voice Journal") as demo:
     # ── Summary + History ──────────────────────────────────────────────────────
     with gr.Row():
         with gr.Column(scale=1):
-            gr.HTML('<p class="step-label">session summary  (ollama)</p>')
+            gr.HTML('<p class="step-label">session summary</p>')
             summary_out = gr.Markdown("_Appears automatically every 5 entries, or click below._")
             summary_btn = gr.Button("Summarise now", variant="secondary", size="sm")
 
         with gr.Column(scale=1):
             with gr.Row():
                 gr.HTML('<p class="step-label" style="flex:1;margin:0;align-self:center;">recent entries</p>')
-                clear_btn = gr.Button("🗑 Clear", variant="secondary", size="sm")
+                clear_btn = gr.Button("Clear", variant="secondary", size="sm")
             history_out = gr.Markdown("_No entries yet._")
 
     # ── Wire up ────────────────────────────────────────────────────────────────
