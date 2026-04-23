@@ -77,8 +77,8 @@ Every entry is stored and the session can be summarised in natural language via 
 ### Docker (recommended)
 
 ```bash
-git clone https://github.com/izabelaszk/emo_journal
-cd emo_journal
+git clone https://github.com/izabelaszk/emotion_journal
+cd emotion_journal
 
 docker compose up --build
 ```
