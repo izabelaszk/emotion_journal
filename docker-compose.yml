@@ -1,0 +1,30 @@
+services:
+  # Gradio demo UI — http://localhost:7860
+  gradio:
+    build: .
+    command: python app.py
+    runtime: nvidia
+    network_mode: host
+    environment:
+      - OLLAMA_HOST=http://localhost:11434
+      - PYTHONUNBUFFERED=1
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+    volumes:
+      - ./outputs:/app/outputs
+    restart: unless-stopped
+
+  # FastAPI REST API — http://localhost:8000/docs
+  api:
+    build: .
+    command: python api.py
+    runtime: nvidia
+    network_mode: host
+    environment:
+      - OLLAMA_HOST=http://localhost:11434
+      - PYTHONUNBUFFERED=1
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+    volumes:
+      - ./outputs:/app/outputs
+    restart: unless-stopped
