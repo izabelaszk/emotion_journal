@@ -1,5 +1,9 @@
 import pytest
-from src.emotion_classifier import EmotionClassifier, EKMAN_LABELS
+
+from src.emotion_classifier import EKMAN_LABELS, EmotionClassifier
+
+# These load real models / lexicon data — slow and may need network on first run.
+pytestmark = pytest.mark.integration
 
 
 def test_transformer_returns_all_labels():
@@ -49,8 +53,4 @@ def test_nrc_neutral_on_empty_text():
     clf = EmotionClassifier(backend="nrc")
     label, _ = clf.dominant("the the the")
     assert label == "neutral"
-
-
-def test_invalid_backend_raises():
-    with pytest.raises(ValueError):
-        EmotionClassifier(backend="unknown")
+    # NOTE: the offline `ValueError` case for an unknown backend lives in test_unit.py

@@ -22,11 +22,10 @@ RUN ln -sf /usr/bin/python3.11 /usr/bin/python && \
 WORKDIR /app
 
 COPY requirements.txt .
-# Install GPU-enabled PyTorch first, then remaining deps, then whisper explicitly
+# Install GPU-enabled PyTorch first so Whisper (in requirements) builds against it.
 RUN python -m pip install --no-cache-dir torch torchvision torchaudio \
         --index-url https://download.pytorch.org/whl/cu124 && \
-    python -m pip install --no-cache-dir -r requirements.txt && \
-    python -m pip install --no-cache-dir openai-whisper
+    python -m pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 

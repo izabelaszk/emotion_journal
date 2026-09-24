@@ -3,22 +3,18 @@ Emotion-Aware Voice Journal — Gradio UI
 Pipeline: STT (Whisper) → Emotion Classification (RoBERTa | Ollama) → TTS feedback
 """
 
-import os
-import tempfile
 import datetime
 
-import torch
 import gradio as gr
-import whisper
-from gtts import gTTS
+
 from src.emotion_classifier import EmotionClassifier
-from src.journal_store import add_entry, get_entries, clear_entries
+from src.journal_store import add_entry, clear_entries, get_entries
+from src.stt_tts import GTTSSpeaker, WhisperSTT, build_tts_feedback
 
 # ─── Config ───────────────────────────────────────────────────────────────────
 EMOTION_MODEL_ID   = "j-hartmann/emotion-english-distilroberta-base"
 WHISPER_MODEL_SIZE = "base"
 OLLAMA_MODEL       = "llama3.2"
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 EMOTION_COLORS = {
     "joy": "#FFD166", "sadness": "#6B8CFF", "anger": "#FF6B6B",
@@ -33,7 +29,8 @@ SUMMARY_TRIGGER = 5
 
 # ─── Model loading ─────────────────────────────────────────────────────────────
 print("Loading Whisper STT model...")
-stt_model = whisper.load_model(WHISPER_MODEL_SIZE, device=DEVICE)
+stt     = WhisperSTT(model_size=WHISPER_MODEL_SIZE)
+speaker = GTTSSpeaker()
 
 print("Loading RoBERTa emotion classifier...")
 transformer_clf = EmotionClassifier(backend="transformer", model_id=EMOTION_MODEL_ID)
@@ -41,16 +38,7 @@ ollama_clf      = EmotionClassifier(backend="ollama",       model_id=OLLAMA_MODE
 
 # ─── Pipeline functions ────────────────────────────────────────────────────────
 def transcribe(audio_path: str) -> str:
-    result = stt_model.transcribe(audio_path, language="en", fp16=(DEVICE == "cuda"))
-    return result["text"].strip()
-
-
-def speak(text: str) -> str:
-    tts = gTTS(text=text, lang="en", slow=False)
-    fd, path = tempfile.mkstemp(suffix=".mp3")
-    os.close(fd)
-    tts.save(path)
-    return path
+    return stt.transcribe_file(audio_path)["text"].strip()
 
 
 # ─── UI helpers ────────────────────────────────────────────────────────────────
@@ -147,7 +135,7 @@ def run_pipeline(audio, text_input: str, backend: str, use_tts: bool):
         try:
             transcription = transcribe(audio)
         except Exception as e:
-            raise gr.Error(f"STT failed: {e}")
+            raise gr.Error(f"STT failed: {e}") from e
     elif text_input and text_input.strip():
         transcription = text_input.strip()
     else:
@@ -157,10 +145,11 @@ def run_pipeline(audio, text_input: str, backend: str, use_tts: bool):
         )
 
     # ── classify ───────────────────────────────────────────────────────────────
+    clf = ollama_clf if backend == "Ollama (zero-shot)" else transformer_clf
     try:
-        emotions = ollama_clf.predict(transcription) if backend == "Ollama (zero-shot)" else transformer_clf.predict(transcription)
+        emotions = clf.predict(transcription)
     except Exception as e:
-        raise gr.Error(str(e))
+        raise gr.Error(str(e)) from e
 
     top       = emotions[0]
     top_label = top["label"].lower()
@@ -170,15 +159,13 @@ def run_pipeline(audio, text_input: str, backend: str, use_tts: bool):
     # ── TTS ────────────────────────────────────────────────────────────────────
     tts_path = None
     if use_tts:
-        feedback = (
-            f"I heard: \"{transcription[:80]}{'...' if len(transcription) > 80 else ''}\". "
-            f"Your dominant emotion is {top_label}, with {top_pct} percent confidence."
+        tts_path = build_tts_feedback(
+            transcription, top_label, top["score"], speaker=speaker
         )
-        tts_path = speak(feedback)
 
     # ── store ──────────────────────────────────────────────────────────────────
     add_entry({
-        "timestamp":     datetime.datetime.now().isoformat(),
+        "timestamp":     datetime.datetime.now(datetime.timezone.utc).isoformat(),
         "transcription": transcription,
         "emotions":      emotions,
         "dominant":      top_label,
@@ -219,8 +206,14 @@ body, .gradio-container {
     color: #7a7880;
     margin: 0 0 6px 0;
 }
-.gr-button-primary   { background: #c4a882 !important; color: #0f0f13 !important; border: none !important; font-weight: 600 !important; border-radius: 8px !important; }
-.gr-button-secondary { background: transparent !important; color: #c4a882 !important; border: 1px solid #c4a882 !important; border-radius: 8px !important; }
+.gr-button-primary {
+    background: #c4a882 !important; color: #0f0f13 !important;
+    border: none !important; font-weight: 600 !important; border-radius: 8px !important;
+}
+.gr-button-secondary {
+    background: transparent !important; color: #c4a882 !important;
+    border: 1px solid #c4a882 !important; border-radius: 8px !important;
+}
 footer, .footer, .built-with, #footer { display: none !important; }
 """
 

@@ -4,6 +4,7 @@ Database lives at outputs/journal.db (persisted via Docker volume).
 """
 
 from __future__ import annotations
+
 import json
 import sqlite3
 from pathlib import Path

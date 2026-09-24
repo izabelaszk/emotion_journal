@@ -1,11 +1,20 @@
 import pytest
-from fastapi.testclient import TestClient
-from api import app
 
-client = TestClient(app)
+# Importing `api` loads Whisper + the emotion model, so the whole module is
+# integration-only. The import is deferred into the `client` fixture so that
+# `pytest -m "not integration"` never triggers a model download during collection.
+pytestmark = pytest.mark.integration
 
 
-def test_health():
+@pytest.fixture(scope="module")
+def client():
+    from fastapi.testclient import TestClient
+
+    from api import app
+    return TestClient(app)
+
+
+def test_health(client):
     r = client.get("/health")
     assert r.status_code == 200
     body = r.json()
@@ -14,7 +23,7 @@ def test_health():
     assert "entries" in body
 
 
-def test_classify_returns_scores():
+def test_classify_returns_scores(client):
     r = client.post("/classify", json={"text": "I am so happy today!"})
     assert r.status_code == 200
     scores = r.json()
@@ -22,13 +31,13 @@ def test_classify_returns_scores():
     assert any(s["label"] == "joy" for s in scores)
 
 
-def test_classify_scores_sum_to_one():
+def test_classify_scores_sum_to_one(client):
     r = client.post("/classify", json={"text": "Testing."})
     total = sum(s["score"] for s in r.json())
     assert abs(total - 1.0) < 0.02
 
 
-def test_analyse_text():
+def test_analyse_text(client):
     r = client.post("/analyse", data={"text": "I love this project!"})
     assert r.status_code == 200
     body = r.json()
@@ -37,12 +46,12 @@ def test_analyse_text():
     assert "emotions" in body
 
 
-def test_analyse_no_input_returns_400():
+def test_analyse_no_input_returns_400(client):
     r = client.post("/analyse")
     assert r.status_code == 400
 
 
-def test_journal_persists_after_analyse():
+def test_journal_persists_after_analyse(client):
     client.delete("/journal")
     client.post("/analyse", data={"text": "Feeling great today."})
     r = client.get("/journal")
@@ -50,7 +59,7 @@ def test_journal_persists_after_analyse():
     assert r.json()["total"] >= 1
 
 
-def test_delete_journal():
+def test_delete_journal(client):
     client.post("/analyse", data={"text": "Test entry."})
     r = client.delete("/journal")
     assert r.status_code == 200

@@ -10,24 +10,18 @@ Endpoints:
   GET  /health       — health check
 """
 
-import io
-import json
-import os
-import tempfile
 import datetime
 from pathlib import Path
-from typing import Optional
 
 import torch
 import uvicorn
-from fastapi import FastAPI, File, UploadFile, Form, HTTPException
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-import whisper
-from transformers import pipeline as hf_pipeline
-from gtts import gTTS
-from src.journal_store import add_entry, get_entries, clear_entries, total_entries
+from src.emotion_classifier import EmotionClassifier
+from src.journal_store import add_entry, clear_entries, get_entries, total_entries
+from src.stt_tts import WhisperSTT
 
 # ─── Config ──────────────────────────────────────────────────────────────────
 EMOTION_MODEL_ID = "j-hartmann/emotion-english-distilroberta-base"
@@ -41,6 +35,8 @@ app = FastAPI(
     version="1.0.0",
 )
 
+# NOTE: open CORS is intentional for this portfolio demo so the API can be
+# called from anywhere. Restrict `allow_origins` to known hosts in production.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -49,14 +45,11 @@ app.add_middleware(
 )
 
 # ─── Model Loading ────────────────────────────────────────────────────────────
+# Reuse the same core components as the Gradio app so there is a single,
+# shared implementation of transcription and classification.
 print("Loading models...")
-stt_model = whisper.load_model(WHISPER_MODEL_SIZE, device=DEVICE)
-emotion_clf = hf_pipeline(
-    "text-classification",
-    model=EMOTION_MODEL_ID,
-    top_k=None,
-    device=0 if DEVICE == "cuda" else -1,
-)
+stt = WhisperSTT(model_size=WHISPER_MODEL_SIZE)
+emotion_clf = EmotionClassifier(backend="transformer", model_id=EMOTION_MODEL_ID)
 
 
 # ─── Schemas ─────────────────────────────────────────────────────────────────
@@ -77,22 +70,12 @@ class AnalysisResult(BaseModel):
 
 # ─── Helpers ─────────────────────────────────────────────────────────────────
 def _transcribe(audio_bytes: bytes, suffix: str = ".wav") -> str:
-    fd, tmp_path = tempfile.mkstemp(suffix=suffix)
-    try:
-        with os.fdopen(fd, "wb") as f:
-            f.write(audio_bytes)
-        result = stt_model.transcribe(tmp_path, language="en", fp16=(DEVICE == "cuda"))
-        return result["text"].strip()
-    finally:
-        Path(tmp_path).unlink(missing_ok=True)
+    return stt.transcribe_bytes(audio_bytes, suffix=suffix)
 
 
 def _classify(text: str) -> list[EmotionScore]:
-    raw = emotion_clf(text)[0]
-    return sorted(
-        [EmotionScore(label=r["label"].lower(), score=round(r["score"], 4)) for r in raw],
-        key=lambda x: x.score, reverse=True
-    )
+    # EmotionClassifier already returns a score-sorted list of {label, score}.
+    return [EmotionScore(**r) for r in emotion_clf.predict(text)]
 
 
 def _feedback(text: str, emotions: list[EmotionScore]) -> str:
@@ -118,7 +101,7 @@ async def transcribe(audio: UploadFile = File(...)):
     try:
         text = _transcribe(content, suffix)
     except Exception as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(status_code=422, detail=str(e)) from e
     return {"transcription": text}
 
 
@@ -130,8 +113,8 @@ def classify(req: TextRequest):
 
 @app.post("/analyse", response_model=AnalysisResult)
 async def analyse(
-    audio: Optional[UploadFile] = File(None),
-    text: Optional[str] = Form(None),
+    audio: UploadFile | None = File(None),
+    text: str | None = Form(None),
 ):
     """Full pipeline: audio or text → emotions → feedback."""
     if audio is not None:
@@ -145,12 +128,12 @@ async def analyse(
 
     emotions = _classify(transcription)
     feedback = _feedback(transcription, emotions)
-    ts = datetime.datetime.utcnow().isoformat() + "Z"
+    ts = datetime.datetime.now(datetime.timezone.utc).isoformat()
 
     add_entry({
         "timestamp": ts,
         "transcription": transcription,
-        "emotions": [e.dict() for e in emotions],
+        "emotions": [e.model_dump() for e in emotions],
         "dominant": emotions[0].label,
     })
 

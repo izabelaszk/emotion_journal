@@ -5,10 +5,10 @@ Speech-To-Text (Whisper) and Text-To-Speech (gTTS) utilities.
 """
 
 from __future__ import annotations
+
 import os
 import tempfile
 from pathlib import Path
-from typing import Optional
 
 import torch
 import whisper
@@ -28,7 +28,7 @@ class WhisperSTT:
     def __init__(
         self,
         model_size: str = "base",
-        language: Optional[str] = "en",
+        language: str | None = "en",
     ):
         device = "cuda" if torch.cuda.is_available() else "cpu"
         self.model = whisper.load_model(model_size, device=device)
@@ -75,13 +75,14 @@ class GTTSSpeaker:
         self.lang = lang
         self.slow = slow
 
-    def speak_to_file(self, text: str, output_path: Optional[str] = None) -> str:
+    def speak_to_file(self, text: str, output_path: str | None = None) -> str:
         """
         Synthesise speech and save to a file.
         Returns the path of the saved audio file.
         """
         if output_path is None:
-            output_path = tempfile.mktemp(suffix=".mp3")
+            fd, output_path = tempfile.mkstemp(suffix=".mp3")
+            os.close(fd)
         tts = gTTS(text=text, lang=self.lang, slow=self.slow)
         tts.save(output_path)
         return output_path
@@ -112,8 +113,8 @@ def build_tts_feedback(
     transcription: str,
     dominant_emotion: str,
     dominant_score: float,
-    speaker: Optional[GTTSSpeaker] = None,
-    save_path: Optional[str] = None,
+    speaker: GTTSSpeaker | None = None,
+    save_path: str | None = None,
 ) -> str:
     """
     Generate TTS audio feedback based on detected emotion.

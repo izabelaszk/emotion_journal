@@ -1,0 +1,26 @@
+# Dev/venv baseline is 3.10 (the Docker image uses 3.11); target the lower
+# floor so lint fixes stay runnable on both — e.g. no py3.11-only datetime.UTC.
+target-version = "py310"
+line-length = 120
+
+[lint]
+select = [
+    "E",    # pycodestyle errors
+    "F",    # pyflakes (unused imports/vars, etc.)
+    "I",    # import sorting
+    "UP",   # pyupgrade (modern syntax)
+    "B",    # flake8-bugbear
+    "SIM",  # flake8-simplify
+    "DTZ",  # flake8-datetimez (timezone-aware datetimes)
+]
+ignore = [
+    # FastAPI's dependency-injection defaults (File(...), Form(...), Depends(...))
+    # are the documented, idiomatic pattern — not the bug B008 is meant to catch.
+    "B008",
+]
+
+[lint.per-file-ignores]
+# app.py / api.py deliberately catch broad exceptions to turn model/STT/LLM
+# failures into friendly user-facing errors instead of crashing the request.
+"app.py" = ["BLE001"]
+"api.py" = ["BLE001"]

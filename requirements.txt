@@ -7,6 +7,9 @@ sentence-transformers>=2.6.0
 datasets>=2.18.0
 nrclex>=3.0.0
 
+# Speech-to-text (install torch first; see README)
+openai-whisper>=20231117
+
 # API
 fastapi>=0.110.0
 uvicorn[standard]>=0.28.0

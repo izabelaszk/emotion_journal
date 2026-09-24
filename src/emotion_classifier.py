@@ -13,9 +13,11 @@ Usage:
 """
 
 from __future__ import annotations
-import os
+
 import json
-from typing import Literal, Optional
+import os
+from typing import Literal
+
 import torch
 from transformers import pipeline as hf_pipeline
 
@@ -63,7 +65,7 @@ Example: [{"label": "joy", "score": 0.85}, {"label": "neutral", "score": 0.15}]"
     def __init__(
         self,
         provider: Literal["openai", "anthropic"] = "openai",
-        model: Optional[str] = None,
+        model: str | None = None,
     ):
         self.provider = provider
         if provider == "openai":
@@ -113,7 +115,11 @@ class NRCClassifier:
 
     def predict(self, text: str) -> list[dict]:
         from nrclex import NRCLex
-        freq = NRCLex(text).affect_frequencies
+        # nrclex >= 4.x no longer processes text passed to the constructor;
+        # load_raw_text() works on both the 3.x and 4.x APIs.
+        lex = NRCLex()
+        lex.load_raw_text(text)
+        freq = lex.affect_frequencies
         raw = {k: freq.get(k, 0.0) for k in self._EKMAN_KEYS}
         total_ekman = sum(raw.values())
         raw["neutral"] = max(0.0, 1.0 - total_ekman)
@@ -173,7 +179,7 @@ class EmotionClassifier:
     def __init__(
         self,
         backend: Literal["transformer", "nrc", "openai", "anthropic", "ollama"] = "transformer",
-        model_id: Optional[str] = None,
+        model_id: str | None = None,
     ):
         self.backend = backend
         if backend == "transformer":

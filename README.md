@@ -90,8 +90,8 @@ docker compose up --build
 ### Local Python
 
 ```bash
+# Install GPU PyTorch first so Whisper builds against it, then the rest.
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
-pip install openai-whisper
 pip install -r requirements.txt
 
 # Gradio UI
@@ -169,10 +169,30 @@ scores = clf.predict("This is absolutely wonderful news!")
 
 ---
 
+## Development
+
+```bash
+# Lint (config in ruff.toml)
+ruff check .
+
+# Fast, offline unit tests — no model downloads, GPU, or network
+pytest -m "not integration"
+
+# Full suite, including model-backed integration tests
+pytest
+```
+
+Tests are split into a fast offline layer (`tests/test_unit.py` — pure logic,
+SQLite journal, TTS templating) and slower `@pytest.mark.integration` tests that
+load the real models. The heavy imports are deferred so `-m "not integration"`
+never triggers a model download during collection.
+
+---
+
 ## Project structure
 
 ```
-emotion-voice-journal/
+emotion-journal/
 ├── app.py                      # Gradio UI
 ├── api.py                      # FastAPI REST API
 ├── src/
@@ -180,11 +200,15 @@ emotion-voice-journal/
 │   ├── journal_store.py        # SQLite persistence layer
 │   └── stt_tts.py              # Whisper STT + gTTS utilities
 ├── tests/
-│   ├── test_classifier.py
-│   └── test_api.py
+│   ├── test_unit.py            # fast, offline unit tests
+│   ├── test_classifier.py      # model-backed (integration)
+│   └── test_api.py             # model-backed (integration)
 ├── requirements.txt
+├── ruff.toml                   # lint config
+├── pytest.ini                  # test markers
 ├── Dockerfile
-└── docker-compose.yml
+├── docker-compose.yml
+└── LICENSE
 ```
 
 
