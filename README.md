@@ -1,5 +1,6 @@
 # 🎙 Emotion-Aware Voice Journal
 
+![CI](https://github.com/izabelaszk/emotion_journal/actions/workflows/ci.yml/badge.svg)
 ![Python](https://img.shields.io/badge/Python-3.11-blue?logo=python)
 ![PyTorch](https://img.shields.io/badge/PyTorch-2.x-ee4c2c?logo=pytorch)
 ![Docker](https://img.shields.io/badge/Docker-GPU-2496ed?logo=docker)
