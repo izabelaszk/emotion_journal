@@ -8,16 +8,27 @@
       "n": 1000,
       "accuracy": 0.449,
       "macro_f1": 0.4013,
-      "latency_ms_mean": 17.0,
-      "latency_ms_p95": 21.8
+      "invalid_outputs": 0,
+      "latency_ms_mean": 20.3,
+      "latency_ms_p95": 26.8
     },
     {
       "backend": "nrc",
       "n": 1000,
       "accuracy": 0.355,
       "macro_f1": 0.1515,
+      "invalid_outputs": 0,
       "latency_ms_mean": 0.5,
-      "latency_ms_p95": 1.2
+      "latency_ms_p95": 1.1
+    },
+    {
+      "backend": "ollama",
+      "n": 1000,
+      "accuracy": 0.396,
+      "macro_f1": 0.3383,
+      "invalid_outputs": 1,
+      "latency_ms_mean": 4243.7,
+      "latency_ms_p95": 4426.7
     }
   ]
 }

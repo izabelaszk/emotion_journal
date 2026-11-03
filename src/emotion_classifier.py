@@ -140,7 +140,32 @@ class OllamaClassifier:
     Requires `ollama serve` to be running and the chosen model pulled.
     """
 
-    SYSTEM_PROMPT = LLMClassifier.SYSTEM_PROMPT
+    SYSTEM_PROMPT = """You are an expert emotion classifier.
+Given a text, output a JSON object {"emotions": [...]} listing objects with keys "label" and "score",
+where labels are from: joy, sadness, anger, fear, surprise, disgust, neutral.
+Scores must sum to 1.0.
+Example: {"emotions": [{"label": "joy", "score": 0.85}, {"label": "neutral", "score": 0.15}]}"""
+
+    # Structured output: Ollama constrains decoding to this schema. Free-form prompting
+    # alone gave unparseable JSON on ~28% of GoEmotions test texts with llama3.2.
+    RESPONSE_SCHEMA = {
+        "type": "object",
+        "properties": {
+            "emotions": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "label": {"type": "string", "enum": EKMAN_LABELS},
+                        "score": {"type": "number"},
+                    },
+                    "required": ["label", "score"],
+                },
+            },
+        },
+        "required": ["emotions"],
+    }
 
     def __init__(self, model: str = "llama3.2"):
         self.model = model
@@ -153,13 +178,10 @@ class OllamaClassifier:
                 {"role": "system", "content": self.SYSTEM_PROMPT},
                 {"role": "user", "content": f"Classify the emotions in this text:\n\n{text}"},
             ],
+            format=self.RESPONSE_SCHEMA,
+            options={"temperature": 0},
         )
-        raw = response["message"]["content"].strip()
-        if "```" in raw:
-            raw = raw.split("```")[1]
-            if raw.startswith("json"):
-                raw = raw[4:]
-        results = json.loads(raw.strip())
+        results = json.loads(response["message"]["content"])["emotions"]
         return sorted(
             [{"label": r["label"].lower(), "score": round(r["score"], 4)} for r in results],
             key=lambda x: x["score"], reverse=True,

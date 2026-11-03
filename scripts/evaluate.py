@@ -86,7 +86,7 @@ def evaluate_backend(backend: str, examples: list[tuple[str, str]]) -> dict:
         start = time.perf_counter()
         try:
             pred = clf.predict(text)[0]["label"]
-        except (ValueError, KeyError, IndexError):
+        except (ValueError, KeyError, IndexError, TypeError, AttributeError):
             pred = "invalid"  # e.g. an LLM returned malformed JSON; counts as wrong
         latencies.append((time.perf_counter() - start) * 1000)
         y_true.append(label)
@@ -97,6 +97,7 @@ def evaluate_backend(backend: str, examples: list[tuple[str, str]]) -> dict:
         "n": len(examples),
         "accuracy": round(accuracy(y_true, y_pred), 4),
         "macro_f1": round(macro_f1(y_true, y_pred, EKMAN_LABELS), 4),
+        "invalid_outputs": y_pred.count("invalid"),
         "latency_ms_mean": round(float(np.mean(latencies)), 1),
         "latency_ms_p95": round(float(np.percentile(latencies, 95)), 1),
     }
