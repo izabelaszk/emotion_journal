@@ -166,6 +166,37 @@ scores = clf.predict("This is absolutely wonderful news!")
 # [{"label": "joy", "score": 0.91}, ...]
 ```
 
+The NRC backend needs TextBlob's corpora once: `python -m textblob.download_corpora lite`.
+
+
+---
+
+## Evaluation
+
+Backends benchmarked on 1,000 single-label examples from the
+[GoEmotions](https://huggingface.co/datasets/google-research-datasets/go_emotions) test split,
+mapped to Ekman-6 + neutral with the official GoEmotions → Ekman mapping (seed 42, CPU only):
+
+| Backend | Accuracy | Macro-F1 | Latency mean (ms) | Latency p95 (ms) |
+|---|---|---|---|---|
+| transformer (DistilRoBERTa) | 0.449 | 0.401 | 17.0 | 21.8 |
+| nrc (lexicon) | 0.355 | 0.151 | 0.5 | 1.2 |
+| *majority class (always "neutral")* | *0.373* | *0.078* | – | – |
+| ollama (llama3.2, zero-shot) | not yet run | – | – | – |
+
+Notes:
+- **Macro-F1 is the headline metric.** The sample is 37% neutral and only ~2% each fear and disgust,
+  so accuracy rewards predicting "neutral"; macro-F1 weights every emotion equally.
+- **The transformer score is optimistic:** the j-hartmann checkpoint was trained partly on GoEmotions,
+  so this is not a clean held-out test for it. NRC and the Ollama LLM are true zero-shot baselines.
+- Latency is per request on a laptop CPU (Intel Core i7-11800H), excluding model load.
+
+Reproduce (writes `results/eval.json`):
+
+```bash
+python -m scripts.evaluate                                  # transformer + nrc
+python -m scripts.evaluate --backends ollama --n 200        # needs `ollama serve`
+```
 
 ---
 
@@ -199,6 +230,10 @@ emotion_journal/
 │   ├── emotion_classifier.py   # Unified classifier (transformer / Ollama / NRC)
 │   ├── journal_store.py        # SQLite persistence layer
 │   └── stt_tts.py              # Whisper STT + gTTS utilities
+├── scripts/
+│   └── evaluate.py             # backend benchmark (accuracy, macro-F1, latency)
+├── results/
+│   └── eval.json               # latest benchmark output
 ├── tests/
 │   ├── test_unit.py            # fast, offline unit tests
 │   ├── test_classifier.py      # model-backed (integration)

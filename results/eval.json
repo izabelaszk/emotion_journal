@@ -1,0 +1,23 @@
+{
+  "dataset": "go_emotions (simplified, test, single-label, Ekman-mapped)",
+  "seed": 42,
+  "platform": "Windows AMD64, Intel64 Family 6 Model 141 Stepping 1, GenuineIntel",
+  "results": [
+    {
+      "backend": "transformer",
+      "n": 1000,
+      "accuracy": 0.449,
+      "macro_f1": 0.4013,
+      "latency_ms_mean": 17.0,
+      "latency_ms_p95": 21.8
+    },
+    {
+      "backend": "nrc",
+      "n": 1000,
+      "accuracy": 0.355,
+      "macro_f1": 0.1515,
+      "latency_ms_mean": 0.5,
+      "latency_ms_p95": 1.2
+    }
+  ]
+}

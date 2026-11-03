@@ -79,3 +79,21 @@ def test_journal_store_crud(tmp_path, monkeypatch):
     deleted = js.clear_entries()
     assert deleted == 2
     assert js.total_entries() == 0
+
+
+# ─── Evaluation metrics ─────────────────────────────────────────────────────────
+def test_eval_metrics_on_hand_made_example():
+    from scripts.evaluate import accuracy, macro_f1
+
+    y_true = ["joy", "joy", "sadness", "anger"]
+    y_pred = ["joy", "sadness", "sadness", "joy"]
+    assert accuracy(y_true, y_pred) == 0.5
+    # per-label F1: joy 0.5, sadness 2/3, anger 0 → mean 7/18
+    assert macro_f1(y_true, y_pred, ["joy", "sadness", "anger"]) == pytest.approx(7 / 18)
+
+
+def test_ekman_mapping_covers_all_goemotions_labels():
+    from scripts.evaluate import EKMAN_MAPPING, GO_TO_EKMAN
+
+    assert set(EKMAN_MAPPING) == set(EKMAN_LABELS)
+    assert len(GO_TO_EKMAN) == 28  # GoEmotions has 27 emotions + neutral
