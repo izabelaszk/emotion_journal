@@ -4,7 +4,6 @@
 ![Python](https://img.shields.io/badge/Python-3.11-blue?logo=python)
 ![PyTorch](https://img.shields.io/badge/PyTorch-2.x-ee4c2c?logo=pytorch)
 ![Docker](https://img.shields.io/badge/Docker-GPU-2496ed?logo=docker)
-![License](https://img.shields.io/badge/License-MIT-green)
 
 > **Portfolio project** — end-to-end NLP/speech pipeline built as an extension of my master's thesis:  
 > *"Applying Quantitative and Qualitative Methods to the Analysis of Emotions in Texts"*  
@@ -201,6 +200,25 @@ python -m scripts.evaluate --backends ollama --n 200        # needs `ollama serv
 
 ---
 
+## Product thinking
+
+**Who it's for:** people who keep a journal and want to see how their mood changes over time,
+without tagging every entry by hand. Speaking is faster than typing, and the spoken reply closes the loop.
+
+**What I'd measure:**
+- *Agreement rate*: how often users accept the detected emotion versus correcting it. This is the most direct
+  signal of model quality in real use, and it's more relevant than any benchmark.
+- *Retention*: whether people come back to journal on day 7 and day 30.
+- *Latency*: time from the end of a recording to the spoken feedback. Users notice anything above a few seconds.
+
+**What I'd build next:**
+1. A "that's not how I feel" button that stores corrections, giving a labelled dataset for fine-tuning
+   on real journal text instead of Reddit comments.
+2. Mood trends over weeks, rather than one summary per session.
+3. Multilingual entries (Whisper already transcribes Polish; the classifier doesn't handle it yet).
+
+---
+
 ## Development
 
 ```bash
@@ -243,8 +261,7 @@ emotion_journal/
 ├── ruff.toml                   # lint config
 ├── pytest.ini                  # test markers
 ├── Dockerfile
-├── docker-compose.yml
-└── LICENSE
+└── docker-compose.yml
 ```
 
 
