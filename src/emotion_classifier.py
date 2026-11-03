@@ -2,8 +2,8 @@
 emotion_classifier.py
 =====================
 Unified emotion classification interface supporting multiple backends:
-  1. Fine-tuned transformer (DistilBERT / RoBERTa) — primary
-  2. Zero-shot LLM (OpenAI or Anthropic) — optional, matches thesis methodology
+  1. Pretrained transformer (DistilRoBERTa, j-hartmann) — primary
+  2. Zero-shot LLM (local Ollama, or OpenAI / Anthropic) — optional, matches thesis methodology
   3. NRC lexicon baseline — lightweight fallback
 
 Usage:
@@ -27,8 +27,8 @@ EKMAN_LABELS = ["joy", "sadness", "anger", "fear", "surprise", "disgust", "neutr
 # ─── Transformer Backend ─────────────────────────────────────────────────────
 class TransformerClassifier:
     """
-    Fine-tuned transformer model for emotion classification.
-    Defaults to j-hartmann/emotion-english-distilroberta-base.
+    Pretrained transformer model for emotion classification.
+    Defaults to the public j-hartmann/emotion-english-distilroberta-base checkpoint.
     Swap `model_id` for your own fine-tuned checkpoint.
     """
 

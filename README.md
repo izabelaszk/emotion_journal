@@ -36,7 +36,7 @@ Every entry is stored and the session can be summarised in natural language via 
  [Whisper STT]           ← openai/whisper-base  (GPU-accelerated)
         │ transcription
         ▼
- [Emotion Classifier]    ← RoBERTa (transformer)  |  Ollama llama3.2 (zero-shot)
+ [Emotion Classifier]    ← DistilRoBERTa (transformer)  |  Ollama llama3.2 (zero-shot)
         │ joy · sadness · anger · fear · surprise · disgust · neutral
         ▼
  [gTTS Speaker]          ← personalised audio feedback
@@ -52,7 +52,7 @@ Every entry is stored and the session can be summarised in natural language via 
 | Component | Technology | Notes |
 |---|---|---|
 | STT | `openai/whisper-base` | swappable model size |
-| Emotion classifier | `j-hartmann/emotion-english-distilroberta-base` | swap for your own checkpoint |
+| Emotion classifier | `j-hartmann/emotion-english-distilroberta-base` | public pretrained checkpoint; swap for your own |
 | LLM zero-shot classifier | Ollama `llama3.2` (local) | optional, mirrors thesis methodology |
 | TTS feedback | `gTTS` | Google Text-to-Speech |
 | Demo UI | `Gradio` | dark-themed, microphone + upload |
@@ -77,8 +77,8 @@ Every entry is stored and the session can be summarised in natural language via 
 ### Docker (recommended)
 
 ```bash
-git clone https://github.com/izabelaszk/emo_journal
-cd emo_journal
+git clone https://github.com/izabelaszk/emotion_journal
+cd emotion_journal
 
 docker compose up --build
 ```
@@ -158,7 +158,7 @@ clf = EmotionClassifier(backend="transformer", model_id="./my_model_checkpoint")
 ```python
 from src.emotion_classifier import EmotionClassifier
 
-clf = EmotionClassifier(backend="transformer")   # fine-tuned RoBERTa (primary)
+clf = EmotionClassifier(backend="transformer")   # pretrained DistilRoBERTa, j-hartmann (primary)
 clf = EmotionClassifier(backend="ollama")         # zero-shot via local Ollama
 clf = EmotionClassifier(backend="nrc")            # lexicon baseline, no GPU needed
 
@@ -192,7 +192,7 @@ never triggers a model download during collection.
 ## Project structure
 
 ```
-emo_journal/
+emotion_journal/
 ├── app.py                      # Gradio UI
 ├── api.py                      # FastAPI REST API
 ├── src/
